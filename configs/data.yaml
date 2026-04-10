@@ -1,0 +1,18 @@
+{
+  "raw": {
+    "sequence_fasta": "data/raw/pfam/sequences.fasta",
+    "annotation_csv": "data/raw/dssp/annotations.csv"
+  },
+  "processed_dir": "data/processed/splits",
+  "filters": {
+    "min_length": 25,
+    "max_length": 800,
+    "drop_unknown_residues": true
+  },
+  "split": {
+    "train_fraction": 0.7,
+    "val_fraction": 0.15,
+    "test_fraction": 0.15,
+    "seed": 7
+  }
+}

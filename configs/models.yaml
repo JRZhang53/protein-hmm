@@ -1,0 +1,20 @@
+{
+  "unsupervised": {
+    "num_states": 4,
+    "alphabet_size": 20,
+    "max_iter": 25,
+    "tol": 0.001,
+    "pseudocount": 0.001,
+    "random_state": 7
+  },
+  "reference": {
+    "state_labels": ["H", "E", "C"],
+    "max_iter": 20,
+    "tol": 0.001,
+    "pseudocount": 0.01,
+    "random_state": 7
+  },
+  "model_selection": {
+    "candidate_states": [2, 3, 4, 6, 8]
+  }
+}
