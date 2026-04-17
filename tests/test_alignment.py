@@ -7,7 +7,7 @@ from support import bootstrap
 bootstrap()
 
 from protein_hmm.data.alignment import AlignmentError, ResidueAligner
-from protein_hmm.types import ProteinRecord
+from protein_hmm.types import AlignedProteinRecord, ProteinRecord
 
 
 class AlignmentTests(unittest.TestCase):
@@ -27,6 +27,22 @@ class AlignmentTests(unittest.TestCase):
         aligned = aligner.align_record(record, "ACDE", "HEEC")
         self.assertEqual(aligned.labels, "HEEC")
         self.assertEqual(aligned.metadata["source"], "toy")
+
+    def test_aligned_record_round_trip_to_dict(self) -> None:
+        record = AlignedProteinRecord(
+            "p1",
+            "famA",
+            "ACDE",
+            labels="HEEC",
+            metadata={"source": "toy"},
+            structure_sequence="ACDE",
+            alignment_score=0.95,
+        )
+        payload = record.to_dict()
+        restored = AlignedProteinRecord.from_dict(payload)
+        self.assertEqual(restored.structure_sequence, "ACDE")
+        self.assertEqual(restored.alignment_score, 0.95)
+        self.assertEqual(restored.metadata["source"], "toy")
 
 
 if __name__ == "__main__":
