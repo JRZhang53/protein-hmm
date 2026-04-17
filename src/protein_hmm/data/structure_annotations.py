@@ -6,6 +6,7 @@ import csv
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
 from protein_hmm.data.alignment import ResidueAligner
@@ -118,8 +119,10 @@ def build_structured_annotation_dataset(
     selected_rows: list[dict[str, Any]] = []
     skipped: dict[str, int] = {
         "no_structure_mapping": 0,
+        "missing_sifts_xml": 0,
         "low_observed_fraction": 0,
         "alignment_failure": 0,
+        "missing_dssp_file": 0,
     }
     family_counts = {family: 0 for family in selected_families}
 
@@ -134,15 +137,23 @@ def build_structured_annotation_dataset(
 
         sifts_path = sifts_dir / f"{structure_mapping.pdb_id}.xml.gz"
         dssp_path = dssp_dir / f"{structure_mapping.pdb_id}.dssp"
-        _download_if_missing(sifts_xml_url(structure_mapping.pdb_id), sifts_path)
-        _download_if_missing(dssp_legacy_url(structure_mapping.pdb_id), dssp_path)
+        try:
+            _download_if_missing(sifts_xml_url(structure_mapping.pdb_id), sifts_path)
+            residue_map = load_sifts_residue_mappings(
+                sifts_path,
+                accession=record.accession,
+                chain_id=structure_mapping.chain_id,
+            )
+        except (HTTPError, URLError, OSError, ValueError):
+            skipped["missing_sifts_xml"] += 1
+            continue
 
-        residue_map = load_sifts_residue_mappings(
-            sifts_path,
-            accession=record.accession,
-            chain_id=structure_mapping.chain_id,
-        )
-        dssp_map = load_legacy_dssp(dssp_path)
+        try:
+            _download_if_missing(dssp_legacy_url(structure_mapping.pdb_id), dssp_path)
+            dssp_map = load_legacy_dssp(dssp_path)
+        except (HTTPError, URLError, OSError, ValueError):
+            dssp_map = {}
+            skipped["missing_dssp_file"] += 1
         structure_sequence, labels, observed_count, fallback_count = _build_annotation_strings(
             record=record,
             residue_map=residue_map,
