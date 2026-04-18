@@ -1,8 +1,8 @@
 {
   "unsupervised": {
-    "num_states": 4,
+    "num_states": 2,
     "alphabet_size": 20,
-    "max_iter": 25,
+    "max_iter": 75,
     "tol": 0.001,
     "pseudocount": 0.001,
     "random_state": 7
@@ -15,6 +15,8 @@
     "random_state": 7
   },
   "model_selection": {
-    "candidate_states": [2, 3, 4, 6, 8]
+    "candidate_states": [2, 3, 4, 6, 8],
+    "selection_metric": "bic",
+    "selected_num_states": 2
   }
 }

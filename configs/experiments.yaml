@@ -3,10 +3,21 @@
   "outputs": {
     "model_dir": "results/models",
     "metrics_dir": "results/metrics",
-    "figure_dir": "results/figures",
+    "figure_dir": "reports/figures",
     "run_dir": "results/runs"
   },
   "families": {
-    "selected": []
+    "selected": [
+      "PF01590",
+      "PF00210",
+      "PF02826",
+      "PF07715",
+      "PF07494",
+      "PF06565",
+      "PF13378",
+      "PF01473",
+      "PF00571",
+      "PF00502"
+    ]
   }
 }
