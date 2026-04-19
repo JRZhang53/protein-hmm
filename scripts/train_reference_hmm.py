@@ -6,6 +6,7 @@ from _bootstrap import bootstrap
 
 ROOT = bootstrap()
 
+from protein_hmm.analysis.evaluation import training_diagnostics
 from protein_hmm.analysis.metrics import q3_accuracy, segment_overlap_score
 from protein_hmm.config import load_project_config
 from protein_hmm.data.encoding import AminoAcidEncoder
@@ -41,6 +42,10 @@ def main() -> None:
         "q3": q3_accuracy("".join(truth), "".join(predicted)) if truth else 0.0,
         "sov": float(np.mean([segment_overlap_score(true, pred) for true, pred in zip(truth, predicted)])) if truth else 0.0,
         "training_history": model.training_history.to_dict(),
+        "training_diagnostics": training_diagnostics(
+            model.training_history,
+            sum(len(sequence) for sequence in train_sequences),
+        ),
     }
     output_path = resolve_project_path(config.experiments["outputs"]["metrics_dir"], ROOT) / "reference_metrics.json"
     write_json(output_path, metrics)

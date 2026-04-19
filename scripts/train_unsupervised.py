@@ -4,6 +4,7 @@ from _bootstrap import bootstrap
 
 ROOT = bootstrap()
 
+from protein_hmm.analysis.evaluation import training_diagnostics
 from protein_hmm.config import load_project_config
 from protein_hmm.data.encoding import AminoAcidEncoder
 from protein_hmm.data.loaders import load_split_records
@@ -35,6 +36,10 @@ def main() -> None:
         "test_log_likelihood": model.score_many(test_sequences) if test_sequences else 0.0,
         "train_bic": model.bic(train_sequences),
         "training_history": model.training_history.to_dict(),
+        "training_diagnostics": training_diagnostics(
+            model.training_history,
+            sum(len(sequence) for sequence in train_sequences),
+        ),
     }
     metrics_path = resolve_project_path(config.experiments["outputs"]["metrics_dir"], ROOT) / "unsupervised_metrics.json"
     write_json(metrics_path, metrics)
