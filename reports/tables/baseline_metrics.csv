@@ -1,0 +1,4 @@
+baseline,q3,sov,mapping
+global_majority_label,0.4919,0.0806,H
+family_majority_label,0.4988,0.0758,PF02826->C; PF00571->H; PF00210->H; PF01590->C; PF13378->C; PF00502->H; PF07715->C
+residue_majority_label,0.5465,0.4794,A->H; C->H; D->C; E->H; F->H; G->C; H->H; I->H; K->H; L->H; M->H; N->C; P->C; Q->H; R->H; S->C; T->C; V->H; W->C; Y->H

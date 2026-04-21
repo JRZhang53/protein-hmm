@@ -28,6 +28,8 @@ pip install -e .
 python scripts/build_dataset.py
 python scripts/train_unsupervised.py
 python scripts/run_model_selection.py
+python scripts/evaluate_baselines.py
+python scripts/make_report_tables.py
 ```
 
 4. Run the lightweight test suite:
@@ -55,8 +57,12 @@ supported.
 - `scripts/train_reference_hmm.py`: fit a constrained reference HMM using
   label supervision.
 - `scripts/run_model_selection.py`: evaluate candidate numbers of latent states
-  with BIC.
+  with BIC, held-out likelihood, annotation metrics, and convergence diagnostics.
+- `scripts/evaluate_baselines.py`: compute global, family-specific, and
+  residue-specific DSSP label baselines.
 - `scripts/make_report_figures.py`: generate report-ready plots.
+- `scripts/make_report_tables.py`: export poster-ready tables and figure
+  captions from generated metrics.
 
 ## Current Scope
 

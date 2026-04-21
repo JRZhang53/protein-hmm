@@ -15,7 +15,7 @@ from protein_hmm.visualization.summary_plots import plot_likelihood_curve
 
 def main() -> None:
     config = load_project_config(ROOT)
-    figure_dir = resolve_project_path("reports/figures", ROOT)
+    figure_dir = resolve_project_path(config.experiments["outputs"]["figure_dir"], ROOT)
 
     model_selection_path = resolve_project_path(config.experiments["outputs"]["metrics_dir"], ROOT) / "model_selection.json"
     if model_selection_path.exists():
@@ -25,8 +25,10 @@ def main() -> None:
         plot_likelihood_curve(
             state_counts=state_counts,
             scores=bic_scores,
-            title="Model Selection (BIC)",
+            title="Model Selection by BIC",
             path=figure_dir / "model_selection_bic.png",
+            ylabel="BIC (lower is better)",
+            note="Lower is better",
         )
 
     model_path = resolve_project_path(config.experiments["outputs"]["model_dir"], ROOT) / "unsupervised_hmm.json"
@@ -39,15 +41,23 @@ def main() -> None:
             params.emission_probs,
             row_labels=[f"State {index}" for index in range(model.num_states)],
             col_labels=list(AMINO_ACIDS),
-            title="Emission Probabilities",
+            title=f"{model.num_states}-State Emission Probabilities",
             path=figure_dir / "emission_heatmap.png",
+            colorbar_label="Emission probability",
+            xlabel="Amino acid",
+            ylabel="Latent state",
         )
         plot_matrix(
             params.transition_probs,
             row_labels=[f"State {index}" for index in range(model.num_states)],
             col_labels=[f"State {index}" for index in range(model.num_states)],
-            title="Transition Matrix",
+            title=f"{model.num_states}-State Transition Matrix",
             path=figure_dir / "transition_heatmap.png",
+            colorbar_label="Transition probability",
+            xlabel="Next state",
+            ylabel="Current state",
+            annotate=True,
+            value_format=".2f",
         )
 
     family_path = resolve_project_path(config.experiments["outputs"]["metrics_dir"], ROOT) / "family_comparison.json"
@@ -58,8 +68,13 @@ def main() -> None:
             payload["transition_distance_matrix"],
             row_labels=families,
             col_labels=families,
-            title="Family Transition Distances",
+            title="Family HMM Transition-Matrix Distances",
             path=figure_dir / "family_transition_distances.png",
+            colorbar_label="Frobenius distance",
+            xlabel="Family",
+            ylabel="Family",
+            annotate=True,
+            value_format=".2f",
         )
     print(f"Saved report figures under {figure_dir}")
 
