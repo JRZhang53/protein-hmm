@@ -10,9 +10,11 @@ from protein_hmm.data.dssp import parse_dssp_line
 from protein_hmm.data.pfam_seed import PfamSeedRecord, parse_seed_sequence_id
 from protein_hmm.data.sifts import (
     PfamChainMapping,
+    SiftsResidueMapping,
     UniProtChainMapping,
     select_best_structure_mapping,
 )
+from protein_hmm.data.structure_annotations import _build_annotation_strings
 
 
 class StructureSourceTests(unittest.TestCase):
@@ -54,6 +56,32 @@ class StructureSourceTests(unittest.TestCase):
         assert best is not None
         self.assertEqual(best.pdb_id, "2x17")
         self.assertTrue(best.covers_domain)
+
+    def test_build_annotation_strings_falls_back_to_sifts_secondary_structure(self) -> None:
+        record = PfamSeedRecord(
+            protein_id="p1/1-3",
+            accession="P1",
+            family="PF00000",
+            family_name="toy",
+            start=1,
+            end=3,
+            sequence="ACD",
+        )
+        residue_map = {
+            1: SiftsResidueMapping("P1", "A", 1, "A", "1", "A", True, "H"),
+            2: SiftsResidueMapping("P1", "A", 2, "C", "2", "C", True, "E"),
+            3: SiftsResidueMapping("P1", "A", 3, "D", "3", "D", True, "T"),
+        }
+        structure_sequence, labels, observed_count, fallback_count = _build_annotation_strings(
+            record=record,
+            residue_map=residue_map,
+            dssp_map={},
+            chain_id="A",
+        )
+        self.assertEqual(structure_sequence, "ACD")
+        self.assertEqual(labels, "HET")
+        self.assertEqual(observed_count, 3)
+        self.assertEqual(fallback_count, 3)
 
 
 if __name__ == "__main__":
