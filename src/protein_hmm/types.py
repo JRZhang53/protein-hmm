@@ -54,7 +54,7 @@ class AlignedProteinRecord(ProteinRecord):
     alignment_score: float = 1.0
 
     def to_dict(self) -> dict[str, Any]:
-        payload = super().to_dict()
+        payload = super(AlignedProteinRecord, self).to_dict()
         payload["structure_sequence"] = self.structure_sequence
         payload["alignment_score"] = self.alignment_score
         return payload
