@@ -14,7 +14,6 @@ dependencies = [
   "matplotlib>=3.9",
   "scipy>=1.14",
   "biopython>=1.84",
-  "hmmlearn>=0.3.3",
   "PyYAML>=6.0",
 ]
 

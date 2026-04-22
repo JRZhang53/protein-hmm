@@ -8,6 +8,7 @@ __pycache__/
 venv/
 build/
 dist/
+.claude/
 
 data/raw/pfam/*
 !data/raw/pfam/.gitkeep
