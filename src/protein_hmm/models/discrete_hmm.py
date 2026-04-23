@@ -7,7 +7,7 @@ from typing import Iterable
 
 import numpy as np
 
-from protein_hmm.inference.baum_welch import baum_welch
+from protein_hmm.inference.baum_welch import baum_welch, baum_welch_restarts
 from protein_hmm.inference.forward_backward import forward_backward
 from protein_hmm.inference.viterbi import viterbi_decode
 from protein_hmm.types import DecodedSequence, HMMParameters, TrainingHistory
@@ -19,10 +19,12 @@ class DiscreteHMM:
         self,
         num_states: int,
         alphabet_size: int = 20,
-        max_iter: int = 25,
-        tol: float = 1e-3,
+        max_iter: int = 200,
+        tol: float = 1e-4,
         pseudocount: float = 1e-3,
         random_state: int | None = None,
+        n_restarts: int = 1,
+        convergence: str = "per_observation",
     ) -> None:
         self.num_states = num_states
         self.alphabet_size = alphabet_size
@@ -30,8 +32,11 @@ class DiscreteHMM:
         self.tol = tol
         self.pseudocount = pseudocount
         self.random_state = random_state
+        self.n_restarts = n_restarts
+        self.convergence = convergence
         self.params: HMMParameters | None = None
         self.training_history = TrainingHistory()
+        self.restart_log_likelihoods: list[float] = []
 
     def fit(
         self,
@@ -40,17 +45,38 @@ class DiscreteHMM:
         initial_params: HMMParameters | None = None,
     ) -> "DiscreteHMM":
         encoded_sequences = [np.asarray(sequence, dtype=int) for sequence in sequences]
-        self.params, self.training_history = baum_welch(
-            sequences=encoded_sequences,
-            num_states=self.num_states,
-            alphabet_size=self.alphabet_size,
-            max_iter=self.max_iter,
-            tol=self.tol,
-            pseudocount=self.pseudocount,
-            random_state=self.random_state,
-            initial_params=initial_params,
-            state_masks=state_masks,
-        )
+        if self.n_restarts <= 1 and initial_params is not None:
+            self.params, self.training_history = baum_welch(
+                sequences=encoded_sequences,
+                num_states=self.num_states,
+                alphabet_size=self.alphabet_size,
+                max_iter=self.max_iter,
+                tol=self.tol,
+                pseudocount=self.pseudocount,
+                random_state=self.random_state,
+                initial_params=initial_params,
+                state_masks=state_masks,
+                convergence=self.convergence,
+            )
+            self.restart_log_likelihoods = (
+                [self.training_history.log_likelihoods[-1]]
+                if self.training_history.log_likelihoods
+                else []
+            )
+        else:
+            self.params, self.training_history, self.restart_log_likelihoods = baum_welch_restarts(
+                sequences=encoded_sequences,
+                num_states=self.num_states,
+                alphabet_size=self.alphabet_size,
+                n_restarts=max(self.n_restarts, 1),
+                max_iter=self.max_iter,
+                tol=self.tol,
+                pseudocount=self.pseudocount,
+                random_state=self.random_state,
+                initial_params=initial_params,
+                state_masks=state_masks,
+                convergence=self.convergence,
+            )
         return self
 
     def _require_params(self) -> HMMParameters:
@@ -129,8 +155,11 @@ class DiscreteHMM:
                 "tol": self.tol,
                 "pseudocount": self.pseudocount,
                 "random_state": self.random_state,
+                "n_restarts": self.n_restarts,
+                "convergence": self.convergence,
                 "params": params.to_dict(),
                 "training_history": self.training_history.to_dict(),
+                "restart_log_likelihoods": list(self.restart_log_likelihoods),
             },
         )
 
@@ -144,6 +173,8 @@ class DiscreteHMM:
             tol=float(payload["tol"]),
             pseudocount=float(payload["pseudocount"]),
             random_state=payload.get("random_state"),
+            n_restarts=int(payload.get("n_restarts", 1)),
+            convergence=str(payload.get("convergence", "per_observation")),
         )
         model.params = HMMParameters.from_dict(payload["params"])
         history = payload.get("training_history", {})
@@ -152,4 +183,5 @@ class DiscreteHMM:
             converged=bool(history.get("converged", False)),
             iterations=int(history.get("iterations", 0)),
         )
+        model.restart_log_likelihoods = list(payload.get("restart_log_likelihoods", []))
         return model
