@@ -17,8 +17,8 @@ class IIDCategoricalModel:
     def fit(self, sequences: list[np.ndarray]) -> "IIDCategoricalModel":
         counts = np.full(self.alphabet_size, self.pseudocount, dtype=float)
         for sequence in sequences:
-            for symbol in np.asarray(sequence, dtype=int):
-                counts[int(symbol)] += 1.0
+            sequence = np.asarray(sequence, dtype=int)
+            counts += np.bincount(sequence, minlength=self.alphabet_size)
         self.probabilities = counts / counts.sum()
         return self
 
@@ -27,6 +27,9 @@ class IIDCategoricalModel:
             raise RuntimeError("Model must be fit before scoring.")
         log_probs = np.log(np.clip(self.probabilities, LOG_FLOOR, None))
         return float(np.sum(log_probs[np.asarray(sequence, dtype=int)]))
+
+    def score_many(self, sequences: list[np.ndarray]) -> float:
+        return float(sum(self.score(sequence) for sequence in sequences))
 
     def save(self, path: str) -> None:
         if self.probabilities is None:
@@ -69,10 +72,15 @@ class ObservedMarkovChain:
         sequence = np.asarray(sequence, dtype=int)
         if len(sequence) == 0:
             return 0.0
-        total = float(np.log(np.clip(self.start_probs[int(sequence[0])], LOG_FLOOR, None)))
-        for left, right in zip(sequence[:-1], sequence[1:]):
-            total += float(np.log(np.clip(self.transition_probs[int(left), int(right)], LOG_FLOOR, None)))
+        log_start = np.log(np.clip(self.start_probs, LOG_FLOOR, None))
+        log_transition = np.log(np.clip(self.transition_probs, LOG_FLOOR, None))
+        total = float(log_start[int(sequence[0])])
+        if len(sequence) > 1:
+            total += float(np.sum(log_transition[sequence[:-1], sequence[1:]]))
         return total
+
+    def score_many(self, sequences: list[np.ndarray]) -> float:
+        return float(sum(self.score(sequence) for sequence in sequences))
 
     def save(self, path: str) -> None:
         if self.start_probs is None or self.transition_probs is None:
