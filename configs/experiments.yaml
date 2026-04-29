@@ -8,16 +8,15 @@
   },
   "families": {
     "selected": [
-      "PF01590",
-      "PF00210",
-      "PF02826",
-      "PF07715",
-      "PF07494",
-      "PF06565",
-      "PF13378",
-      "PF01473",
-      "PF00571",
-      "PF00502"
-    ]
+      "PF00069",
+      "PF00071",
+      "PF00076",
+      "PF00595",
+      "PF13499",
+      "PF00400"
+    ],
+    "min_observed_fraction": 0.4,
+    "min_observed_residues": 25,
+    "max_per_family": 200
   }
 }
