@@ -25,10 +25,17 @@ pip install -e .
 3. Run the workflow scripts from the repository root:
 
 ```bash
+python scripts/build_structure_annotations.py
 python scripts/build_dataset.py
+python scripts/summarize_dataset.py
 python scripts/train_unsupervised.py
+python scripts/train_family_models.py
+python scripts/train_reference_hmm.py
 python scripts/run_model_selection.py
 python scripts/evaluate_baselines.py
+python scripts/evaluate_annotations.py
+python scripts/run_unified_evaluation.py
+python scripts/make_report_figures.py
 python scripts/make_report_tables.py
 ```
 
@@ -57,10 +64,19 @@ supported.
 - `scripts/train_reference_hmm.py`: fit a constrained reference HMM using
   label supervision.
 - `scripts/run_model_selection.py`: evaluate candidate numbers of latent states
-  with BIC, held-out likelihood, annotation metrics, and convergence diagnostics.
+  with BIC, held-out likelihood, annotation metrics, convergence diagnostics,
+  multi-restart spread, and an optional pseudocount sweep.
 - `scripts/evaluate_baselines.py`: compute global, family-specific, and
   residue-specific DSSP label baselines.
-- `scripts/make_report_figures.py`: generate report-ready plots.
+- `scripts/run_unified_evaluation.py`: produce a single test-set table comparing
+  i.i.d., observed Markov chain, annotation baselines, every unsupervised K,
+  and the constrained reference HMM on the same metrics (per-residue LL,
+  Q3, SOV, ARI).
+- `scripts/make_report_figures.py`: generate report-ready plots
+  (BIC curve, EM convergence, emission heatmap + log2 enrichment, transition
+  heatmap, per-state hydrophobicity / polarity bars, DSSP-vs-state enrichment,
+  example decoded paths, family transition / stationary distance heatmaps,
+  cross-family per-residue LL matrix).
 - `scripts/make_report_tables.py`: export poster-ready tables and figure
   captions from generated metrics.
 

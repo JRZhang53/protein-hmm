@@ -1,22 +1,27 @@
 {
   "unsupervised": {
-    "num_states": 2,
+    "num_states": 4,
     "alphabet_size": 20,
-    "max_iter": 75,
-    "tol": 0.001,
-    "pseudocount": 0.001,
-    "random_state": 7
+    "max_iter": 200,
+    "tol": 0.0001,
+    "pseudocount": 0.01,
+    "random_state": 7,
+    "n_restarts": 4,
+    "convergence": "per_observation"
   },
   "reference": {
     "state_labels": ["H", "E", "C"],
-    "max_iter": 20,
-    "tol": 0.001,
+    "max_iter": 100,
+    "tol": 0.0001,
     "pseudocount": 0.01,
     "random_state": 7
   },
   "model_selection": {
     "candidate_states": [2, 3, 4, 6, 8],
     "selection_metric": "bic",
-    "selected_num_states": 2
+    "selected_num_states": 2,
+    "interpretation_num_states": 4,
+    "pseudocount_sweep": [0.01]
   }
 }
+
