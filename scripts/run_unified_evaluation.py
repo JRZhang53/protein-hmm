@@ -1,40 +1,35 @@
 """Unified test-set evaluation across all models and baselines.
 
-Produces a single metrics file (and CSV via make_report_tables) containing
-per-residue log-likelihood plus Q3/SOV/ARI for:
+Produces a single rows-of-models metrics file containing per-residue
+log-likelihood plus Q3 / SOV / ARI for:
 
-  - i.i.d. categorical baseline
-  - first-order observed Markov chain
+  - i.i.d. categorical baseline (fit fresh)
+  - first-order observed Markov chain (fit fresh)
   - global / family-majority / residue-majority annotation baselines
-  - unsupervised HMMs at every candidate K
-  - constrained semi-supervised HMM (reference)
+    (read from results/metrics/baselines.json, which evaluate_baselines.py
+    produced)
+  - unsupervised HMMs at every candidate K (read from
+    results/metrics/model_selection.json so we don't refit)
+  - constrained semi-supervised HMM (read from
+    results/metrics/reference_metrics.json)
 
-Run AFTER train_unsupervised, run_model_selection, train_reference_hmm.
+Run AFTER evaluate_baselines.py, run_model_selection.py, and
+train_reference_hmm.py.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-import numpy as np
-
 from _bootstrap import bootstrap
 
 ROOT = bootstrap()
 
-from protein_hmm.analysis.evaluation import (
-    annotation_baselines,
-    evaluate_hmm_annotations,
-    training_diagnostics,
-)
-from protein_hmm.analysis.metrics import bic_score, q3_accuracy, segment_overlap_score
 from protein_hmm.config import load_project_config
 from protein_hmm.data.encoding import AminoAcidEncoder
 from protein_hmm.data.loaders import load_split_records
 from protein_hmm.models.baselines import IIDCategoricalModel, ObservedMarkovChain
-from protein_hmm.models.discrete_hmm import DiscreteHMM
-from protein_hmm.models.semi_supervised_hmm import SemiSupervisedHMM
-from protein_hmm.utils.io import write_json
+from protein_hmm.utils.io import read_json, write_json
 from protein_hmm.utils.paths import resolve_project_path
 
 
@@ -48,22 +43,15 @@ def _encode(records, encoder):
 
 def main() -> None:
     config = load_project_config(ROOT)
+    metrics_dir = resolve_project_path(config.experiments["outputs"]["metrics_dir"], ROOT)
     splits = load_split_records(resolve_project_path(config.data["processed_dir"], ROOT))
     encoder = AminoAcidEncoder()
 
-    train_records = splits["train"]
-    test_records = splits["test"]
-    val_records = splits["val"]
-    train_labeled = [record for record in train_records if record.labels]
-    test_labeled = [record for record in test_records if record.labels]
-
-    train_sequences = _encode(train_records, encoder)
-    val_sequences = _encode(val_records, encoder)
-    test_sequences = _encode(test_records, encoder)
-
+    train_sequences = _encode(splits["train"], encoder)
+    val_sequences = _encode(splits["val"], encoder)
+    test_sequences = _encode(splits["test"], encoder)
     test_residues = sum(len(seq) for seq in test_sequences)
     val_residues = sum(len(seq) for seq in val_sequences)
-    train_residues = sum(len(seq) for seq in train_sequences) or 1
 
     rows: list[dict[str, Any]] = []
 
@@ -83,7 +71,7 @@ def main() -> None:
         "val_log_likelihood_per_residue": _per_residue(markov_model.score_many(val_sequences), val_residues),
     })
 
-    baseline_payload = annotation_baselines(train_records, test_records)
+    baseline_payload = read_json(metrics_dir / "baselines.json")
     for entry in baseline_payload["baselines"]:
         rows.append({
             "model": entry["name"],
@@ -92,75 +80,43 @@ def main() -> None:
             "sov": entry["sov"],
         })
 
-    candidate_states = config.models["model_selection"]["candidate_states"]
-    unsup_kwargs = {key: value for key, value in config.models["unsupervised"].items() if key != "num_states"}
-    for num_states in candidate_states:
-        model = DiscreteHMM(num_states=num_states, **unsup_kwargs)
-        model.fit(train_sequences)
-        params_count = model.parameter_count()
-        train_ll = model.score_many(train_sequences)
-        bic = bic_score(train_ll, params_count, train_residues)
-        row: dict[str, Any] = {
-            "model": f"unsupervised_K{num_states}",
+    model_selection = read_json(metrics_dir / "model_selection.json")
+    for entry in model_selection["results"]:
+        evaluation = entry.get("annotation_evaluation", {})
+        rows.append({
+            "model": f"unsupervised_K{entry['num_states']}",
             "kind": "unsupervised_hmm",
-            "num_states": num_states,
-            "train_log_likelihood_per_residue": _per_residue(train_ll, train_residues),
-            "val_log_likelihood_per_residue": _per_residue(model.score_many(val_sequences), val_residues),
-            "test_log_likelihood_per_residue": _per_residue(model.score_many(test_sequences), test_residues),
-            "bic": bic,
-            "training_diagnostics": training_diagnostics(model.training_history, train_residues),
-            "restart_log_likelihoods": list(model.restart_log_likelihoods),
-        }
-        if train_labeled and test_labeled:
-            evaluation = evaluate_hmm_annotations(
-                model=model,
-                encoder=encoder,
-                mapping_records=train_labeled,
-                evaluation_records=test_labeled,
-            )
-            row["q3"] = evaluation["q3"]
-            row["sov"] = evaluation["sov"]
-            row["ari"] = evaluation["ari"]
-            row["state_label_map"] = evaluation["state_label_map"]
-            row["state_label_enrichment"] = evaluation["state_label_enrichment"]
-        rows.append(row)
+            "num_states": entry["num_states"],
+            "pseudocount": entry.get("pseudocount"),
+            "train_log_likelihood_per_residue": entry["train_log_likelihood_per_residue"],
+            "val_log_likelihood_per_residue": entry["val_log_likelihood_per_residue"],
+            "test_log_likelihood_per_residue": entry["test_log_likelihood_per_residue"],
+            "bic": entry["bic"],
+            "q3": evaluation.get("q3"),
+            "sov": evaluation.get("sov"),
+            "ari": evaluation.get("ari"),
+            "state_label_map": evaluation.get("state_label_map"),
+        })
 
-    if train_labeled and test_labeled:
-        train_label_seqs = [record.labels or "" for record in train_labeled]
-        test_label_seqs = [record.labels or "" for record in test_labeled]
-        train_seq_labeled = _encode(train_labeled, encoder)
-        test_seq_labeled = _encode(test_labeled, encoder)
-        reference = SemiSupervisedHMM(**config.models["reference"])
-        reference.fit(train_seq_labeled, train_label_seqs)
-        predicted = [reference.predict_labels(seq) for seq in test_seq_labeled]
+    reference_path = metrics_dir / "reference_metrics.json"
+    if reference_path.exists():
+        reference = read_json(reference_path)
+        train_residues = sum(len(seq) for seq in train_sequences) or 1
         rows.append({
             "model": "reference_hmm_semi_supervised",
             "kind": "supervised_hmm",
-            "num_states": reference.num_states,
-            "train_log_likelihood_per_residue": _per_residue(
-                reference.score_many(train_seq_labeled),
-                sum(len(seq) for seq in train_seq_labeled) or 1,
-            ),
-            "test_log_likelihood_per_residue": _per_residue(
-                reference.score_many(test_seq_labeled),
-                sum(len(seq) for seq in test_seq_labeled) or 1,
-            ),
-            "q3": q3_accuracy("".join(test_label_seqs), "".join(predicted)),
-            "sov": float(np.mean([
-                segment_overlap_score(true, pred)
-                for true, pred in zip(test_label_seqs, predicted)
-            ])),
-            "training_diagnostics": training_diagnostics(
-                reference.training_history,
-                sum(len(seq) for seq in train_seq_labeled) or 1,
-            ),
+            "num_states": 3,
+            "train_log_likelihood_per_residue": _per_residue(reference.get("train_log_likelihood", 0.0), train_residues),
+            "test_log_likelihood_per_residue": _per_residue(reference.get("test_log_likelihood", 0.0), test_residues),
+            "q3": reference.get("q3"),
+            "sov": reference.get("sov"),
         })
 
     payload = {
         "rows": rows,
         "label_distribution": baseline_payload["label_distribution"],
     }
-    output_path = resolve_project_path(config.experiments["outputs"]["metrics_dir"], ROOT) / "unified_evaluation.json"
+    output_path = metrics_dir / "unified_evaluation.json"
     write_json(output_path, payload)
     print(f"Wrote unified evaluation to {output_path}")
 
