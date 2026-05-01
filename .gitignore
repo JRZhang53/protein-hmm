@@ -34,9 +34,3 @@ results/figures/*
 results/runs/*
 !results/runs/.gitkeep
 
-reports/figures/*
-!reports/figures/.gitkeep
-reports/tables/*
-!reports/tables/.gitkeep
-reports/notes/*
-!reports/notes/.gitkeep

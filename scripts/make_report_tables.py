@@ -292,7 +292,7 @@ def main() -> None:
 
 {structure_line}
 - Final split sizes: {dataset_summary['train']['num_proteins']} train, {dataset_summary['val']['num_proteins']} validation, {dataset_summary['test']['num_proteins']} test.
-- BIC-selected unsupervised HMM: K={best_bic['num_states']} (BIC {_fmt(best_bic['bic'], 2)}). With small N, BIC's penalty pushes toward composition-only solutions; treat as a lower bound on useful K.
+- BIC-selected unsupervised HMM: K={best_bic['num_states']} (BIC {_fmt(best_bic['bic'], 2)}).
 - Validation-LL-best HMM: K={best_val['num_states']} (val LL/res {_fmt(best_val.get('val_log_likelihood_per_residue'))}).
 {interpretation_text}
 - Best annotation baseline by Q3: {baseline_best['name']} (Q3 {_fmt(baseline_best['q3'])}, SOV {_fmt(baseline_best['sov'])}). The supervised reference HMM should improve on this; the unsupervised HMM is not expected to.
