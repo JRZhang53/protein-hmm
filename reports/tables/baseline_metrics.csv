@@ -1,4 +1,4 @@
 baseline,q3,sov,mapping
-global_majority_label,0.4919,0.0806,H
-family_majority_label,0.4988,0.0758,PF02826->C; PF00571->H; PF00210->H; PF01590->C; PF13378->C; PF00502->H; PF07715->C
-residue_majority_label,0.5465,0.4794,A->H; C->H; D->C; E->H; F->H; G->C; H->H; I->H; K->H; L->H; M->H; N->C; P->C; Q->H; R->H; S->C; T->C; V->H; W->C; Y->H
+global_majority_label,0.3692,0.0497,H
+family_majority_label,0.5150,0.0548,PF00069->H; PF13499->H; PF00071->H; PF00076->H; PF00595->E; PF00400->E
+residue_majority_label,0.4793,0.4803,A->H; C->E; D->C; E->H; F->E; G->C; H->H; I->E; K->H; L->E; M->H; N->C; P->C; Q->H; R->H; S->E; T->E; V->E; W->E; Y->E

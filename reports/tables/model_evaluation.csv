@@ -1,6 +1,6 @@
-num_states,train_log_likelihood,val_log_likelihood,test_log_likelihood,bic,q3,sov,ari,state_label_map,iterations,converged,last_delta_per_observation,near_converged_per_observation
-2,-15503.45,-3740.05,-3720.09,31359.64,0.4919,0.0806,-0.0127,0->H; 1->H,75,False,0.00001303,True
-3,-15480.79,-3737.05,-3711.33,31520.82,0.4796,0.4106,0.0276,0->C; 1->H; 2->C,75,False,0.00001279,True
-4,-15451.49,-3728.67,-3719.41,31685.92,0.5188,0.4601,0.0194,0->C; 1->H; 2->H; 3->C,75,False,0.00007822,True
-6,-15448.67,-3741.37,-3720.26,32179.30,0.4558,0.3740,0.0137,0->C; 1->C; 2->H; 3->C; 4->C; 5->H,75,False,0.00005782,True
-8,-15415.00,-3735.25,-3723.84,32679.81,0.4620,0.4208,0.0012,0->H; 1->H; 2->H; 3->H; 4->H; 5->C; 6->C; 7->H,75,False,0.00024730,False
+num_states,pseudocount,train_log_likelihood_per_residue,val_log_likelihood_per_residue,test_log_likelihood_per_residue,bic,q3,sov,ari,state_label_map,iterations,converged,near_converged_per_observation,restarts_best_minus_worst
+2,0.0100,-2.8937,-2.8919,-2.8947,750580.57,0.4680,0.1265,0.0566,0->E; 1->H,24,True,True,503.74
+3,0.0100,-2.8963,-2.8942,-2.8979,751537.81,0.3794,0.3651,0.0033,0->E; 1->E; 2->H,15,True,True,116.75
+4,0.0100,-2.8920,-2.8902,-2.8936,750710.42,0.4197,0.3754,0.0198,0->C; 1->H; 2->C; 3->E,46,True,True,539.88
+6,0.0100,-2.8831,-2.8812,-2.8847,749091.83,0.4599,0.4683,0.0264,0->H; 1->C; 2->H; 3->E; 4->H; 5->E,102,True,True,1397.85
+8,0.0100,-2.8866,-2.8845,-2.8883,750765.41,0.4596,0.4906,0.0283,0->C; 1->H; 2->H; 3->C; 4->C; 5->E; 6->H; 7->E,85,True,True,705.43

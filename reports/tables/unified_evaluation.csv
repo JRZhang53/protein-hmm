@@ -1,0 +1,12 @@
+model,kind,num_states,test_log_likelihood_per_residue,val_log_likelihood_per_residue,q3,sov,ari,bic
+iid_categorical,baseline_lm,,-2.8987,-2.8946,,,,
+observed_markov,baseline_lm,,-2.8838,-2.8812,,,,
+global_majority_label,baseline_annotation,,,,0.3692,0.0497,,
+family_majority_label,baseline_annotation,,,,0.5150,0.0548,,
+residue_majority_label,baseline_annotation,,,,0.4793,0.4803,,
+unsupervised_K2,unsupervised_hmm,2,-2.8947,-2.8919,0.4680,0.1265,0.0566,750580.57
+unsupervised_K3,unsupervised_hmm,3,-2.8979,-2.8942,0.3794,0.3651,0.0033,751537.81
+unsupervised_K4,unsupervised_hmm,4,-2.8936,-2.8902,0.4197,0.3754,0.0198,750710.42
+unsupervised_K6,unsupervised_hmm,6,-2.8847,-2.8812,0.4599,0.4683,0.0264,749091.83
+unsupervised_K8,unsupervised_hmm,8,-2.8883,-2.8845,0.4596,0.4906,0.0283,750765.41
+reference_hmm_semi_supervised,supervised_hmm,3,-2.8999,,0.4413,0.1240,,

@@ -1,8 +1,21 @@
 # Poster Key Results
 
-- Structure-linked dataset: 55 annotated proteins from 146 Pfam seed candidates.
-- Final split sizes: 37 train, 9 validation, 9 test.
-- BIC-selected unsupervised HMM: 2 latent states with BIC 31359.64.
-- Validation-likelihood-selected HMM: 4 latent states with validation log-likelihood -3728.67.
-- Best annotation baseline by Q3: residue_majority_label with Q3 0.5465 and SOV 0.4794.
-- Main interpretation: unsupervised HMMs capture amino-acid composition and family-level dynamics more clearly than DSSP secondary-structure classes.
+- Structure-linked dataset: 1039 annotated proteins from 19236 Pfam seed candidates.
+- Final split sizes: 722 train, 154 validation, 154 test.
+- BIC-selected unsupervised HMM: K=6 (BIC 749091.83).
+- Validation-LL-best HMM: K=6 (val LL/res -2.8812).
+- Interpretation HMM (K=4): val LL/res -2.8902, Q3 0.4197, SOV 0.3754, ARI 0.0198.
+- Best annotation baseline by Q3: family_majority_label (Q3 0.5150, SOV 0.0548). The supervised reference HMM should improve on this; the unsupervised HMM is not expected to.
+- Unified evaluation (test set):
+  - iid_categorical: Q3=, SOV=, test LL/res=-2.8987
+  - observed_markov: Q3=, SOV=, test LL/res=-2.8838
+  - global_majority_label: Q3=0.3692, SOV=0.0497, test LL/res=
+  - family_majority_label: Q3=0.5150, SOV=0.0548, test LL/res=
+  - residue_majority_label: Q3=0.4793, SOV=0.4803, test LL/res=
+  - unsupervised_K2: Q3=0.4680, SOV=0.1265, test LL/res=-2.8947
+  - unsupervised_K3: Q3=0.3794, SOV=0.3651, test LL/res=-2.8979
+  - unsupervised_K4: Q3=0.4197, SOV=0.3754, test LL/res=-2.8936
+  - unsupervised_K6: Q3=0.4599, SOV=0.4683, test LL/res=-2.8847
+  - unsupervised_K8: Q3=0.4596, SOV=0.4906, test LL/res=-2.8883
+  - reference_hmm_semi_supervised: Q3=0.4413, SOV=0.1240, test LL/res=-2.8999
+- Main interpretation: unsupervised HMMs primarily separate amino-acid composition regimes (hydrophobic vs polar), recovering some helix/coil signal but not strand boundaries; the constrained reference HMM is the upper bound on Q3/SOV achievable from these emissions alone.
