@@ -61,7 +61,7 @@ def plot_state_path_with_labels(
     label_track = np.asarray([label_index.get(label, len(label_order)) for label in labels])
 
     figure, (axis_top, axis_bottom) = plt.subplots(
-        2, 1, figsize=(10, 3.2), sharex=True, gridspec_kw={"height_ratios": [3, 1]}
+        2, 1, figsize=(11, 3.4), sharex=True, gridspec_kw={"height_ratios": [3, 1]}
     )
     axis_top.step(range(len(states)), states, where="mid", linewidth=1.5, color="tab:blue")
     axis_top.set_ylabel("Latent state")
@@ -69,19 +69,21 @@ def plot_state_path_with_labels(
     axis_top.set_title(title)
     axis_top.set_ylim(-0.5, num_states - 0.5)
 
+    n_labels = len(label_order)
     image = axis_bottom.imshow(
         label_track[None, :],
         aspect="auto",
         cmap="viridis",
-        vmin=0,
-        vmax=len(label_order),
+        vmin=-0.5,
+        vmax=n_labels - 0.5,
         extent=(0, len(labels), 0, 1),
     )
     axis_bottom.set_yticks([])
     axis_bottom.set_ylabel("DSSP")
     axis_bottom.set_xlabel("Residue position")
-    colorbar = figure.colorbar(image, ax=axis_bottom, ticks=range(len(label_order)), orientation="horizontal", pad=0.5)
-    colorbar.ax.set_xticklabels(list(label_order))
+    colorbar = figure.colorbar(image, ax=axis_bottom, ticks=list(range(n_labels)), orientation="vertical", fraction=0.025, pad=0.02)
+    colorbar.ax.set_yticklabels(list(label_order))
+    colorbar.ax.tick_params(labelsize=9)
     figure.tight_layout()
     if path is not None:
         Path(path).parent.mkdir(parents=True, exist_ok=True)
