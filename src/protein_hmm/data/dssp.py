@@ -12,6 +12,7 @@ class DsspResidue:
     pdb_resnum: str
     residue: str
     secondary_structure: str
+    accessibility: int | None = None
 
 
 def parse_dssp_line(line: str) -> DsspResidue | None:
@@ -28,11 +29,19 @@ def parse_dssp_line(line: str) -> DsspResidue | None:
         return None
 
     secondary_structure = line[16].strip() or "C"
+
+    accessibility: int | None = None
+    if len(line) >= 38:
+        acc_token = line[34:38].strip()
+        if acc_token.lstrip("-").isdigit():
+            accessibility = int(acc_token)
+
     return DsspResidue(
         chain_id=chain_id,
         pdb_resnum=pdb_resnum,
         residue=residue.upper(),
         secondary_structure=secondary_structure,
+        accessibility=accessibility,
     )
 
 
