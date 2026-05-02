@@ -111,6 +111,7 @@ def main() -> None:
                 colorbar_label="log2 enrichment vs train background",
                 xlabel="Amino acid",
                 ylabel="Latent state",
+                diverging=True,
             )
         plot_matrix(
             params.transition_probs,
@@ -133,6 +134,7 @@ def main() -> None:
             title="State hydrophobicity (Kyte-Doolittle)",
             ylabel="Mean KD score",
             path=figure_dir / "state_hydrophobicity.png",
+            diverging=True,
         )
         plot_state_property_bars(
             state_labels=state_labels,
@@ -207,6 +209,7 @@ def main() -> None:
                 ylabel="Model trained on",
                 annotate=True,
                 value_format=".2f",
+                diverging=True,
             )
 
     if model_path.exists():
