@@ -161,7 +161,7 @@ def render(record, states: np.ndarray, coords: np.ndarray, fig_dir: Path) -> Non
     that contrast immediate.
     """
     apply_style()
-    fig = plt.figure(figsize=(11, 8))
+    fig = plt.figure(figsize=(15, 11))
     ax = fig.add_subplot(111, projection="3d")
 
     # Pale-grey backbone tube
@@ -214,13 +214,16 @@ def render(record, states: np.ndarray, coords: np.ndarray, fig_dir: Path) -> Non
     ax.set_zticks([])
     ax.grid(False)
     ax.set_box_aspect((1, 1, 1))
-    ax.legend(loc="upper left", fontsize=11, framealpha=0.95)
+    ax.legend(loc="upper left", fontsize=33, framealpha=0.95, markerscale=2.5,
+              handletextpad=0.5, borderpad=0.6)
     family = record.family
     family_name = {"PF00069": "Pkinase", "PF00071": "Ras", "PF00076": "RRM_1",
                    "PF00595": "PDZ", "PF13499": "EF-hand_7", "PF00400": "WD40"}.get(family, family)
     title = f"{family_name} ({record.protein_id})"
     subtitle = f"⟨dist from centroid⟩  S3 (core) {s3_dist:.1f} Å   <   S2 (surface) {s2_dist:.1f} Å   (mean {avg:.1f} Å)"
-    ax.set_title(f"{title}\n{subtitle}", fontsize=13, fontweight="bold", pad=10)
+    ax.set_title(title, fontsize=39, fontweight="bold", pad=18)
+    ax.text2D(0.5, -0.02, subtitle, transform=ax.transAxes,
+              ha="center", va="top", fontsize=27, fontweight="bold", color="#333")
     fig.tight_layout()
     out_path = fig_dir / f"structure_colored_{family}_{record.protein_id.replace('/', '_')}.png"
     fig.savefig(out_path, dpi=200, bbox_inches="tight")
