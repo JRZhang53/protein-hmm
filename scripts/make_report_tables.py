@@ -10,7 +10,7 @@ ROOT = bootstrap()
 
 from protein_hmm.config import load_project_config
 from protein_hmm.utils.io import read_json
-from protein_hmm.utils.paths import resolve_project_path
+from protein_hmm.utils.paths import by_K_dir, resolve_project_path
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
@@ -157,14 +157,16 @@ Per-residue log-likelihood of each family-trained HMM evaluated on every family'
 
 def main() -> None:
     config = load_project_config(ROOT)
+    K = int(config.models["unsupervised"]["num_states"])
     metrics_dir = resolve_project_path(config.experiments["outputs"]["metrics_dir"], ROOT)
+    K_metrics_dir = by_K_dir(K, "metrics", ROOT)
     table_dir = resolve_project_path("reports/tables", ROOT)
     notes_dir = resolve_project_path("reports/notes", ROOT)
 
     dataset_summary = read_json(metrics_dir / "dataset_summary.json")
     model_selection = read_json(metrics_dir / "model_selection.json")
     baselines = read_json(metrics_dir / "baselines.json")
-    family_comparison = read_json(metrics_dir / "family_comparison.json")
+    family_comparison = read_json(K_metrics_dir / "family_comparison.json")
     structure_summary_path = metrics_dir / "structure_annotation_summary.json"
     structure_summary = read_json(structure_summary_path) if structure_summary_path.exists() else None
     unified_path = metrics_dir / "unified_evaluation.json"

@@ -29,7 +29,7 @@ from protein_hmm.constants import (
 from protein_hmm.config import load_project_config
 from protein_hmm.models.discrete_hmm import DiscreteHMM
 from protein_hmm.utils.io import read_json
-from protein_hmm.utils.paths import resolve_project_path
+from protein_hmm.utils.paths import by_K_dir, resolve_project_path
 from protein_hmm.visualization.style import STATE_PALETTE, apply_style
 
 
@@ -325,13 +325,11 @@ def plot_fingerprint_cards(summaries, fig_dir: Path) -> None:
 
 def main() -> None:
     config = load_project_config(ROOT)
-    metrics_dir = resolve_project_path(config.experiments["outputs"]["metrics_dir"], ROOT)
-    fig_dir = resolve_project_path(config.experiments["outputs"]["figure_dir"], ROOT)
-    fig_dir.mkdir(parents=True, exist_ok=True)
+    K = int(config.models["unsupervised"]["num_states"])
+    metrics_dir = by_K_dir(K, "metrics", ROOT)
+    fig_dir = by_K_dir(K, "figures", ROOT)
 
-    model = DiscreteHMM.load(
-        resolve_project_path(config.experiments["outputs"]["model_dir"], ROOT) / "unsupervised_hmm.json"
-    )
+    model = DiscreteHMM.load(by_K_dir(K, "models", ROOT) / "unsupervised_hmm.json")
     rsa_payload = read_json(metrics_dir / "state_rsa.json")
     rsa_means = rsa_payload["mean_rsa_per_state"]
     annotation = read_json(metrics_dir / "annotation_evaluation.json")

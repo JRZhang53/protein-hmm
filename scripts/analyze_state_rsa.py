@@ -26,7 +26,7 @@ from protein_hmm.data.encoding import AminoAcidEncoder
 from protein_hmm.data.loaders import load_split_records
 from protein_hmm.models.discrete_hmm import DiscreteHMM
 from protein_hmm.utils.io import ensure_dir, write_json
-from protein_hmm.utils.paths import resolve_project_path
+from protein_hmm.utils.paths import by_K_dir, resolve_project_path
 from protein_hmm.visualization.summary_plots import plot_state_property_bars
 
 
@@ -37,9 +37,8 @@ def main() -> None:
     if not test_records:
         raise RuntimeError("Test split is empty.")
 
-    model = DiscreteHMM.load(
-        resolve_project_path(config.experiments["outputs"]["model_dir"], ROOT) / "unsupervised_hmm.json"
-    )
+    K = int(config.models["unsupervised"]["num_states"])
+    model = DiscreteHMM.load(by_K_dir(K, "models", ROOT) / "unsupervised_hmm.json")
     encoder = AminoAcidEncoder()
 
     sifts_dir = resolve_project_path("data/raw/pdb/sifts_xml", ROOT)
@@ -113,10 +112,10 @@ def main() -> None:
         "std_rsa_per_state": summary["std"],
         "n_residues_per_state": summary["n"],
     }
-    metrics_path = resolve_project_path(config.experiments["outputs"]["metrics_dir"], ROOT) / "state_rsa.json"
+    metrics_path = by_K_dir(K, "metrics", ROOT) / "state_rsa.json"
     write_json(metrics_path, payload)
 
-    figure_path = resolve_project_path(config.experiments["outputs"]["figure_dir"], ROOT) / "state_rsa.png"
+    figure_path = by_K_dir(K, "figures", ROOT) / "state_rsa.png"
     plot_state_property_bars(
         state_labels=state_labels,
         series={"Mean RSA": summary["mean"]},

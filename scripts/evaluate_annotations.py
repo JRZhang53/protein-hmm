@@ -10,7 +10,7 @@ from protein_hmm.data.encoding import AminoAcidEncoder
 from protein_hmm.data.loaders import load_split_records
 from protein_hmm.models.discrete_hmm import DiscreteHMM
 from protein_hmm.utils.io import write_json
-from protein_hmm.utils.paths import resolve_project_path
+from protein_hmm.utils.paths import by_K_dir, resolve_project_path
 
 
 def main() -> None:
@@ -23,7 +23,8 @@ def main() -> None:
     if not labeled_records:
         raise RuntimeError("No labeled test records were found for annotation evaluation.")
 
-    model = DiscreteHMM.load(resolve_project_path(config.experiments["outputs"]["model_dir"], ROOT) / "unsupervised_hmm.json")
+    K = int(config.models["unsupervised"]["num_states"])
+    model = DiscreteHMM.load(by_K_dir(K, "models", ROOT) / "unsupervised_hmm.json")
     encoder = AminoAcidEncoder()
 
     metrics = evaluate_hmm_annotations(
@@ -32,7 +33,7 @@ def main() -> None:
         mapping_records=train_labeled_records,
         evaluation_records=labeled_records,
     )
-    output_path = resolve_project_path(config.experiments["outputs"]["metrics_dir"], ROOT) / "annotation_evaluation.json"
+    output_path = by_K_dir(K, "metrics", ROOT) / "annotation_evaluation.json"
     write_json(output_path, metrics)
     print(f"Wrote annotation evaluation to {output_path}")
 

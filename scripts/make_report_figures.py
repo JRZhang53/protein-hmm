@@ -18,7 +18,7 @@ from protein_hmm.data.encoding import AminoAcidEncoder
 from protein_hmm.data.loaders import load_split_records
 from protein_hmm.models.discrete_hmm import DiscreteHMM
 from protein_hmm.utils.io import read_json
-from protein_hmm.utils.paths import resolve_project_path
+from protein_hmm.utils.paths import by_K_dir, resolve_project_path
 from protein_hmm.visualization.heatmaps import plot_matrix
 from protein_hmm.visualization.sequence_plots import plot_state_path_with_labels
 from protein_hmm.visualization.summary_plots import (
@@ -44,11 +44,16 @@ def _select_examples(records, num_examples: int = 3):
 
 def main() -> None:
     config = load_project_config(ROOT)
-    figure_dir = resolve_project_path(config.experiments["outputs"]["figure_dir"], ROOT)
-    metrics_dir = resolve_project_path(config.experiments["outputs"]["metrics_dir"], ROOT)
-    model_dir = resolve_project_path(config.experiments["outputs"]["model_dir"], ROOT)
+    K = int(config.models["unsupervised"]["num_states"])
+    # K-sweep figures stay at the top-level reports/figures, since they describe
+    # the K dimension itself rather than a single chosen K.
+    sweep_figure_dir = resolve_project_path(config.experiments["outputs"]["figure_dir"], ROOT)
+    sweep_metrics_dir = resolve_project_path(config.experiments["outputs"]["metrics_dir"], ROOT)
+    figure_dir = by_K_dir(K, "figures", ROOT)
+    metrics_dir = by_K_dir(K, "metrics", ROOT)
+    model_dir = by_K_dir(K, "models", ROOT)
 
-    model_selection_path = metrics_dir / "model_selection.json"
+    model_selection_path = sweep_metrics_dir / "model_selection.json"
     if model_selection_path.exists():
         payload = read_json(model_selection_path)
         rows = payload["results"]
@@ -60,7 +65,7 @@ def main() -> None:
             state_counts=state_counts,
             scores=bic_scores,
             title="Model Selection by BIC",
-            path=figure_dir / "model_selection_bic.png",
+            path=sweep_figure_dir / "model_selection_bic.png",
             ylabel="BIC (lower is better)",
             note="Lower is better",
         )
@@ -69,14 +74,14 @@ def main() -> None:
             state_counts=state_counts,
             scores=val_per_residue,
             title="Validation log-likelihood per residue",
-            path=figure_dir / "model_selection_val_ll.png",
+            path=sweep_figure_dir / "model_selection_val_ll.png",
             ylabel="log-likelihood per residue",
         )
         histories = {
             f"K={row['num_states']}": row.get("training_log_likelihoods", [])
             for row in primary_rows
         }
-        plot_em_convergence(histories, path=figure_dir / "em_convergence.png")
+        plot_em_convergence(histories, path=sweep_figure_dir / "em_convergence.png")
 
     splits = load_split_records(resolve_project_path(config.data["processed_dir"], ROOT))
     encoder = AminoAcidEncoder()

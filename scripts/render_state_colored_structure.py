@@ -27,7 +27,7 @@ from protein_hmm.data.encoding import AminoAcidEncoder
 from protein_hmm.data.loaders import load_split_records
 from protein_hmm.data.sifts import load_sifts_residue_mappings
 from protein_hmm.models.discrete_hmm import DiscreteHMM
-from protein_hmm.utils.paths import resolve_project_path
+from protein_hmm.utils.paths import by_K_dir, resolve_project_path
 from protein_hmm.visualization.style import apply_style
 
 
@@ -238,15 +238,13 @@ def main() -> None:
     if not test_records:
         raise RuntimeError("test split empty")
 
-    model = DiscreteHMM.load(
-        resolve_project_path(config.experiments["outputs"]["model_dir"], ROOT) / "unsupervised_hmm.json"
-    )
+    K = int(config.models["unsupervised"]["num_states"])
+    model = DiscreteHMM.load(by_K_dir(K, "models", ROOT) / "unsupervised_hmm.json")
     encoder = AminoAcidEncoder()
 
     sifts_dir = resolve_project_path("data/raw/pdb/sifts_xml", ROOT)
     pdb_dir = resolve_project_path("data/raw/pdb/coords", ROOT)
-    fig_dir = resolve_project_path(config.experiments["outputs"]["figure_dir"], ROOT)
-    fig_dir.mkdir(parents=True, exist_ok=True)
+    fig_dir = by_K_dir(K, "figures", ROOT)
 
     # For each family, try test records in order of length (longest first) until one renders.
     by_family: dict[str, list] = {}

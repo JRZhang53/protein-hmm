@@ -15,7 +15,7 @@ from protein_hmm.data.loaders import load_split_records
 from protein_hmm.data.preprocessing import group_by_family
 from protein_hmm.models.discrete_hmm import DiscreteHMM
 from protein_hmm.utils.io import write_json
-from protein_hmm.utils.paths import resolve_project_path
+from protein_hmm.utils.paths import by_K_dir, resolve_project_path
 
 
 def main() -> None:
@@ -25,6 +25,8 @@ def main() -> None:
     train_records_by_family = group_by_family(splits["train"])
     test_records_by_family = group_by_family(splits["test"])
 
+    K = int(config.models["unsupervised"]["num_states"])
+    K_models_dir = by_K_dir(K, "models", ROOT)
     models = {}
     for family, records in train_records_by_family.items():
         sequences = [encoder.encode(record.sequence) for record in records]
@@ -32,7 +34,7 @@ def main() -> None:
             continue
         model = DiscreteHMM(**config.models["unsupervised"])
         model.fit(sequences)
-        model_path = resolve_project_path(config.experiments["outputs"]["model_dir"], ROOT) / f"family_{family}.json"
+        model_path = K_models_dir / f"family_{family}.json"
         model.save(model_path)
         models[family] = model
 
@@ -54,7 +56,7 @@ def main() -> None:
         "stationary_distance_matrix": stationary_distances.tolist(),
         "cross_family_log_likelihood_per_residue": cross_family.tolist(),
     }
-    output_path = resolve_project_path(config.experiments["outputs"]["metrics_dir"], ROOT) / "family_comparison.json"
+    output_path = by_K_dir(K, "metrics", ROOT) / "family_comparison.json"
     write_json(output_path, metrics)
     print(f"Wrote family comparison metrics to {output_path}")
 
