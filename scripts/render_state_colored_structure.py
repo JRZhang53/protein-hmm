@@ -32,8 +32,21 @@ from protein_hmm.visualization.style import apply_style
 
 
 DSSP_COLORS = {"H": "#1f4e79", "E": "#c1432a", "C": "#7f7f7f"}
-STATE_COLORS = {0: "#7f7f7f", 1: "#1f4e79", 2: "#7f7f7f", 3: "#c1432a"}
-STATE_NAMES = {0: "turn-rich coil", 1: "amphipathic helix", 2: "acidic surface loop", 3: "buried hydrophobic core"}
+
+# Per-K mapping: which state index represents the buried hydrophobic core
+# (highlighted orange) and which represents the acidic surface loop
+# (highlighted green). Determined by inspecting state_summaries.json after
+# training: the core state is the most-buried, most-hydrophobic; the surface
+# state is the most-exposed, most-polar.
+CORE_STATE_BY_K = {4: 3, 6: 4}
+SURFACE_STATE_BY_K = {4: 2, 6: 2}
+STATE_NAMES_BY_K = {
+    4: {0: "turn-rich coil", 1: "amphipathic helix",
+        2: "acidic surface loop", 3: "buried hydrophobic core"},
+    6: {0: "polar surface helix", 1: "proline / Gly turn",
+        2: "charged surface helix", 3: "Gly-mixed buried region",
+        4: "pure aliphatic core", 5: "polar / mixed strand"},
+}
 
 
 def _fetch_pdb(pdb_id: str, dest: Path) -> Path:
@@ -152,15 +165,17 @@ def _aligned_states_and_coords(
     return np.asarray(aligned_states), np.asarray(aligned_coords)
 
 
-def render(record, states: np.ndarray, coords: np.ndarray, fig_dir: Path) -> None:
-    """Render the backbone in pale grey with S3 (core) and S2 (surface) highlighted.
-
-    The story we want the viewer to see at a glance is that the buried-core
-    state (S3) sits in the spatial centre of the protein while the acidic
-    surface-loop state (S2) sits on the outside. Hiding S0/S1 in grey makes
-    that contrast immediate.
+def render(record, states: np.ndarray, coords: np.ndarray, fig_dir: Path, K: int) -> None:
+    """Render the backbone in pale grey with the buried-core and surface
+    states highlighted (per-K mapping in CORE_STATE_BY_K / SURFACE_STATE_BY_K).
     """
     apply_style()
+    core_state = CORE_STATE_BY_K[K]
+    surface_state = SURFACE_STATE_BY_K[K]
+    state_names = STATE_NAMES_BY_K[K]
+    core_color = "#c1432a"
+    surface_color = "#3f7d20"
+
     fig = plt.figure(figsize=(15, 11))
     ax = fig.add_subplot(111, projection="3d")
 
@@ -173,40 +188,36 @@ def render(record, states: np.ndarray, coords: np.ndarray, fig_dir: Path) -> Non
             color="#bdbdbd", linewidth=2.0, solid_capstyle="round", zorder=1,
         )
 
-    # Background residues (S0, S1) as small dim dots
-    background_mask = (states != 3) & (states != 2)
+    background_mask = (states != core_state) & (states != surface_state)
     if background_mask.any():
         ax.scatter(
             coords[background_mask, 0], coords[background_mask, 1], coords[background_mask, 2],
             c="#bdbdbd", s=10, alpha=0.55, depthshade=False, zorder=2,
-            label="S0 / S1: coil / helix",
+            label="other states (helix / coil)",
         )
 
-    # S3 = buried hydrophobic core — bold orange
-    s3_mask = states == 3
-    if s3_mask.any():
+    core_mask = states == core_state
+    if core_mask.any():
         ax.scatter(
-            coords[s3_mask, 0], coords[s3_mask, 1], coords[s3_mask, 2],
-            c=STATE_COLORS[3], s=110, edgecolors="white", linewidths=1.3,
+            coords[core_mask, 0], coords[core_mask, 1], coords[core_mask, 2],
+            c=core_color, s=110, edgecolors="white", linewidths=1.3,
             depthshade=False, alpha=0.96, zorder=4,
-            label=f"S3: buried hydrophobic core ({int(s3_mask.sum())})",
+            label=f"S{core_state}: {state_names[core_state]} ({int(core_mask.sum())})",
         )
 
-    # S2 = acidic surface loop — green
-    s2_mask = states == 2
-    if s2_mask.any():
+    surface_mask = states == surface_state
+    if surface_mask.any():
         ax.scatter(
-            coords[s2_mask, 0], coords[s2_mask, 1], coords[s2_mask, 2],
-            c="#3f7d20", s=110, edgecolors="white", linewidths=1.3,
+            coords[surface_mask, 0], coords[surface_mask, 1], coords[surface_mask, 2],
+            c=surface_color, s=110, edgecolors="white", linewidths=1.3,
             depthshade=False, alpha=0.92, zorder=3,
-            label=f"S2: acidic surface loop ({int(s2_mask.sum())})",
+            label=f"S{surface_state}: {state_names[surface_state]} ({int(surface_mask.sum())})",
         )
 
-    # Compute centroid + relative buried-ness (mean distance from centroid for S3 vs S2)
     centroid = coords.mean(axis=0)
     dist = np.linalg.norm(coords - centroid, axis=1)
-    s3_dist = dist[s3_mask].mean() if s3_mask.any() else float("nan")
-    s2_dist = dist[s2_mask].mean() if s2_mask.any() else float("nan")
+    core_dist = dist[core_mask].mean() if core_mask.any() else float("nan")
+    surface_dist = dist[surface_mask].mean() if surface_mask.any() else float("nan")
     avg = dist.mean()
 
     ax.set_xticks([])
@@ -220,7 +231,10 @@ def render(record, states: np.ndarray, coords: np.ndarray, fig_dir: Path) -> Non
     family_name = {"PF00069": "Pkinase", "PF00071": "Ras", "PF00076": "RRM_1",
                    "PF00595": "PDZ", "PF13499": "EF-hand_7", "PF00400": "WD40"}.get(family, family)
     title = f"{family_name} ({record.protein_id})"
-    subtitle = f"⟨dist from centroid⟩  S3 (core) {s3_dist:.1f} Å   <   S2 (surface) {s2_dist:.1f} Å   (mean {avg:.1f} Å)"
+    subtitle = (
+        f"⟨dist from centroid⟩  S{core_state} (core) {core_dist:.1f} Å   "
+        f"<   S{surface_state} (surface) {surface_dist:.1f} Å   (mean {avg:.1f} Å)"
+    )
     ax.set_title(title, fontsize=39, fontweight="bold", pad=18)
     ax.text2D(0.5, -0.02, subtitle, transform=ax.transAxes,
               ha="center", va="top", fontsize=27, fontweight="bold", color="#333")
@@ -228,7 +242,7 @@ def render(record, states: np.ndarray, coords: np.ndarray, fig_dir: Path) -> Non
     out_path = fig_dir / f"structure_colored_{family}_{record.protein_id.replace('/', '_')}.png"
     fig.savefig(out_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
-    print(f"  rendered {out_path.name}: {len(states)} CA residues, S3 d={s3_dist:.1f}, S2 d={s2_dist:.1f}, mean {avg:.1f}")
+    print(f"  rendered {out_path.name}: {len(states)} CA, S{core_state} d={core_dist:.1f}, S{surface_state} d={surface_dist:.1f}, mean {avg:.1f}")
 
 
 def main() -> None:
@@ -259,7 +273,7 @@ def main() -> None:
             if result is None:
                 continue
             states, coords = result
-            render(record, states, coords, fig_dir)
+            render(record, states, coords, fig_dir, K=K)
             break
         else:
             print(f"  no renderable candidate for {family}")

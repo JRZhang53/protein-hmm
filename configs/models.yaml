@@ -1,6 +1,6 @@
 {
   "unsupervised": {
-    "num_states": 4,
+    "num_states": 6,
     "alphabet_size": 20,
     "max_iter": 200,
     "tol": 0.0001,
@@ -19,8 +19,8 @@
   "model_selection": {
     "candidate_states": [2, 3, 4, 6, 8],
     "selection_metric": "bic",
-    "selected_num_states": 2,
-    "interpretation_num_states": 4,
+    "selected_num_states": 6,
+    "interpretation_num_states": 6,
     "pseudocount_sweep": [0.01]
   }
 }
