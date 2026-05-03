@@ -52,6 +52,25 @@ STATE_INTERPRETATION_BY_K: dict[int, dict[int, str]] = {
     },
 }
 
+# Per-state (offset_x_pts, offset_y_pts, ha, va) for the KD x RSA scatter
+# labels. Tuned to avoid overlap with neighbouring markers and the legend.
+LABEL_PLACEMENT_BY_K: dict[int, dict[int, tuple[int, int, str, str]]] = {
+    4: {
+        0: (14, 12, "left", "bottom"),
+        1: (14, 12, "left", "bottom"),
+        2: (14, 12, "left", "bottom"),
+        3: (-14, 12, "right", "bottom"),
+    },
+    6: {
+        0: (0, -22, "center", "top"),      # directly below (clear of S1 above)
+        1: (16, 6, "left", "bottom"),      # right (clear of S0 below, S2 left)
+        2: (0, 18, "center", "bottom"),    # directly above (top-left of canvas)
+        3: (-16, 0, "right", "center"),    # left (clear of S4 below-right, S5 above)
+        4: (-16, 14, "right", "bottom"),   # above-left (rightmost marker)
+        5: (16, 0, "left", "center"),      # right (clear of S3 below-right)
+    },
+}
+
 
 def _state_summary(model: DiscreteHMM, rsa_means: list[float], dssp_enrichment: np.ndarray) -> list[dict]:
     if model.params is None:
@@ -85,7 +104,9 @@ def _state_summary(model: DiscreteHMM, rsa_means: list[float], dssp_enrichment: 
 
 def plot_kd_vs_rsa(summaries, fig_dir: Path) -> None:
     apply_style()
-    fig, ax = plt.subplots(figsize=(9, 7))
+    fig, ax = plt.subplots(figsize=(10, 8))
+    K = len(summaries)
+    placements = LABEL_PLACEMENT_BY_K.get(K, {})
     for s in summaries:
         color = DSSP_COLORS[s["dominant_dssp"]]
         size = 2200 * s["stationary"]
@@ -98,38 +119,51 @@ def plot_kd_vs_rsa(summaries, fig_dir: Path) -> None:
             linewidths=2.5,
             zorder=3,
         )
+        offset_x, offset_y, ha, va = placements.get(
+            s["state"], (12, 12, "left", "bottom"),
+        )
         ax.annotate(
             f"S{s['state']}\n{s['interpretation']}",
             xy=(s["kd"], s["rsa"]),
-            xytext=(12, 12),
+            xytext=(offset_x, offset_y),
             textcoords="offset points",
             fontsize=14,
             fontweight="bold",
             color=color,
-            ha="left",
-            va="bottom",
+            ha=ha,
+            va=va,
         )
     ax.axvline(0.0, color="#bbbbbb", linewidth=0.8, zorder=1)
     avg_rsa = float(np.mean([s["rsa"] for s in summaries]))
     ax.axhline(avg_rsa, color="#bbbbbb", linewidth=0.8, zorder=1, linestyle="--")
     ax.set_xlabel("Mean Kyte-Doolittle hydrophobicity\n(← polar / charged       hydrophobic →)", fontsize=14)
     ax.set_ylabel("Mean RSA per state\n(← buried        exposed →)", fontsize=14)
-    ax.set_title("States separate in biochemistry × geometry space", fontsize=18, fontweight="bold", pad=14)
+    ax.set_title("States separate in biochemistry × geometry space", fontsize=18, fontweight="bold", pad=20)
     ax.grid(axis="both", linestyle=":", alpha=0.5)
+    # Add headroom above the highest marker so above-marker labels don't crash into the title.
+    rsa_values = [s["rsa"] for s in summaries]
+    kd_values = [s["kd"] for s in summaries]
+    rsa_min, rsa_max = min(rsa_values), max(rsa_values)
+    rsa_pad = (rsa_max - rsa_min) * 0.20
+    ax.set_ylim(rsa_min - rsa_pad, rsa_max + rsa_pad * 1.3)
+    kd_min, kd_max = min(kd_values), max(kd_values)
+    kd_pad = (kd_max - kd_min) * 0.10
+    ax.set_xlim(kd_min - kd_pad, kd_max + kd_pad)
 
     handles = [
         mpatches.Patch(color=DSSP_COLORS["H"], label="Dominant: helix (H)"),
         mpatches.Patch(color=DSSP_COLORS["E"], label="Dominant: strand (E)"),
         mpatches.Patch(color=DSSP_COLORS["C"], label="Dominant: coil (C)"),
     ]
-    legend = ax.legend(handles=handles, loc="upper right", fontsize=12, framealpha=0.95)
+    legend = ax.legend(handles=handles, loc="upper right", fontsize=12, framealpha=0.95,
+                       bbox_to_anchor=(1.0, 1.0))
     legend.set_title("DSSP enrichment", prop={"size": 12, "weight": "bold"})
 
     ax.text(
         0.02, 0.02,
         "marker size ∝ stationary state occupancy",
         transform=ax.transAxes,
-        fontsize=11, color="#666", style="italic",
+        fontsize=15, color="#555", style="italic", fontweight="bold",
     )
     fig.tight_layout()
     fig.savefig(fig_dir / "state_kd_vs_rsa_scatter.png", dpi=200)
