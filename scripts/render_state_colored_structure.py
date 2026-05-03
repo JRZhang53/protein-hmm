@@ -48,6 +48,14 @@ STATE_NAMES_BY_K = {
         4: "pure aliphatic core", 5: "polar / mixed strand"},
 }
 
+# Per-K burial groups for the 3-colour structure render: which state indices
+# count as buried (orange), surface (green), or intermediate / connector
+# (faded). Derived from state_summaries.json mean RSA per state.
+BURIAL_GROUPS_BY_K: dict[int, dict[str, list[int]]] = {
+    4: {"buried": [3], "surface": [0, 2], "intermediate": [1]},
+    6: {"buried": [3, 4], "surface": [0, 1, 2], "intermediate": [5]},
+}
+
 
 def _fetch_pdb(pdb_id: str, dest: Path) -> Path:
     if dest.exists() and dest.stat().st_size > 0:
@@ -166,15 +174,22 @@ def _aligned_states_and_coords(
 
 
 def render(record, states: np.ndarray, coords: np.ndarray, fig_dir: Path, K: int) -> None:
-    """Render the backbone in pale grey with the buried-core and surface
-    states highlighted (per-K mapping in CORE_STATE_BY_K / SURFACE_STATE_BY_K).
+    """Render the backbone with residues coloured by burial group:
+    buried (orange) / surface (green) / intermediate (faded grey).
     """
     apply_style()
-    core_state = CORE_STATE_BY_K[K]
-    surface_state = SURFACE_STATE_BY_K[K]
-    state_names = STATE_NAMES_BY_K[K]
+    groups = BURIAL_GROUPS_BY_K[K]
+    buried_states = set(groups["buried"])
+    surface_states = set(groups["surface"])
+    intermediate_states = set(groups.get("intermediate", []))
     core_color = "#c1432a"
     surface_color = "#3f7d20"
+    inter_color = "#a4a4a4"
+
+    state_names = STATE_NAMES_BY_K[K]
+    buried_label_states = ", ".join(f"S{s}" for s in sorted(buried_states))
+    surface_label_states = ", ".join(f"S{s}" for s in sorted(surface_states))
+    inter_label_states = ", ".join(f"S{s}" for s in sorted(intermediate_states))
 
     fig = plt.figure(figsize=(15, 11))
     ax = fig.add_subplot(111, projection="3d")
@@ -185,38 +200,40 @@ def render(record, states: np.ndarray, coords: np.ndarray, fig_dir: Path, K: int
             [coords[i, 0], coords[i + 1, 0]],
             [coords[i, 1], coords[i + 1, 1]],
             [coords[i, 2], coords[i + 1, 2]],
-            color="#bdbdbd", linewidth=2.0, solid_capstyle="round", zorder=1,
+            color="#d6d6d6", linewidth=2.0, solid_capstyle="round", zorder=1,
         )
 
-    background_mask = (states != core_state) & (states != surface_state)
-    if background_mask.any():
+    buried_mask = np.isin(states, list(buried_states))
+    surface_mask = np.isin(states, list(surface_states))
+    inter_mask = np.isin(states, list(intermediate_states))
+
+    if inter_mask.any() and intermediate_states:
         ax.scatter(
-            coords[background_mask, 0], coords[background_mask, 1], coords[background_mask, 2],
-            c="#bdbdbd", s=10, alpha=0.55, depthshade=False, zorder=2,
-            label="other states (helix / coil)",
+            coords[inter_mask, 0], coords[inter_mask, 1], coords[inter_mask, 2],
+            c=inter_color, s=55, alpha=0.55, depthshade=False, zorder=2,
+            edgecolors="white", linewidths=0.6,
+            label=f"intermediate ({inter_label_states}): {int(inter_mask.sum())}",
         )
 
-    core_mask = states == core_state
-    if core_mask.any():
-        ax.scatter(
-            coords[core_mask, 0], coords[core_mask, 1], coords[core_mask, 2],
-            c=core_color, s=110, edgecolors="white", linewidths=1.3,
-            depthshade=False, alpha=0.96, zorder=4,
-            label=f"S{core_state}: {state_names[core_state]} ({int(core_mask.sum())})",
-        )
-
-    surface_mask = states == surface_state
     if surface_mask.any():
         ax.scatter(
             coords[surface_mask, 0], coords[surface_mask, 1], coords[surface_mask, 2],
-            c=surface_color, s=110, edgecolors="white", linewidths=1.3,
+            c=surface_color, s=130, edgecolors="white", linewidths=1.3,
             depthshade=False, alpha=0.92, zorder=3,
-            label=f"S{surface_state}: {state_names[surface_state]} ({int(surface_mask.sum())})",
+            label=f"surface ({surface_label_states}): {int(surface_mask.sum())}",
+        )
+
+    if buried_mask.any():
+        ax.scatter(
+            coords[buried_mask, 0], coords[buried_mask, 1], coords[buried_mask, 2],
+            c=core_color, s=130, edgecolors="white", linewidths=1.3,
+            depthshade=False, alpha=0.96, zorder=4,
+            label=f"buried ({buried_label_states}): {int(buried_mask.sum())}",
         )
 
     centroid = coords.mean(axis=0)
     dist = np.linalg.norm(coords - centroid, axis=1)
-    core_dist = dist[core_mask].mean() if core_mask.any() else float("nan")
+    core_dist = dist[buried_mask].mean() if buried_mask.any() else float("nan")
     surface_dist = dist[surface_mask].mean() if surface_mask.any() else float("nan")
     avg = dist.mean()
 
@@ -225,15 +242,15 @@ def render(record, states: np.ndarray, coords: np.ndarray, fig_dir: Path, K: int
     ax.set_zticks([])
     ax.grid(False)
     ax.set_box_aspect((1, 1, 1))
-    ax.legend(loc="upper left", fontsize=33, framealpha=0.95, markerscale=2.5,
+    ax.legend(loc="upper left", fontsize=28, framealpha=0.95, markerscale=2.0,
               handletextpad=0.5, borderpad=0.6)
     family = record.family
     family_name = {"PF00069": "Pkinase", "PF00071": "Ras", "PF00076": "RRM_1",
                    "PF00595": "PDZ", "PF13499": "EF-hand_7", "PF00400": "WD40"}.get(family, family)
     title = f"{family_name} ({record.protein_id})"
     subtitle = (
-        f"⟨dist from centroid⟩  S{core_state} (core) {core_dist:.1f} Å   "
-        f"<   S{surface_state} (surface) {surface_dist:.1f} Å   (mean {avg:.1f} Å)"
+        f"⟨dist from centroid⟩  buried {core_dist:.1f} Å   "
+        f"<   surface {surface_dist:.1f} Å   (mean {avg:.1f} Å)"
     )
     ax.set_title(title, fontsize=39, fontweight="bold", pad=18)
     ax.text2D(0.5, -0.02, subtitle, transform=ax.transAxes,
@@ -242,7 +259,7 @@ def render(record, states: np.ndarray, coords: np.ndarray, fig_dir: Path, K: int
     out_path = fig_dir / f"structure_colored_{family}_{record.protein_id.replace('/', '_')}.png"
     fig.savefig(out_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
-    print(f"  rendered {out_path.name}: {len(states)} CA, S{core_state} d={core_dist:.1f}, S{surface_state} d={surface_dist:.1f}, mean {avg:.1f}")
+    print(f"  rendered {out_path.name}: {len(states)} CA, buried d={core_dist:.1f}, surface d={surface_dist:.1f}, mean {avg:.1f}")
 
 
 def main() -> None:

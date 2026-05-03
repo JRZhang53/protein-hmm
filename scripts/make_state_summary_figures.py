@@ -104,42 +104,43 @@ def _state_summary(model: DiscreteHMM, rsa_means: list[float], dssp_enrichment: 
 
 def plot_kd_vs_rsa(summaries, fig_dir: Path) -> None:
     apply_style()
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=(11, 9))
     K = len(summaries)
     placements = LABEL_PLACEMENT_BY_K.get(K, {})
     for s in summaries:
         color = DSSP_COLORS[s["dominant_dssp"]]
-        size = 2200 * s["stationary"]
+        size = 5500 * s["stationary"]
         ax.scatter(
             s["kd"], s["rsa"],
             s=size,
             c=color,
             alpha=0.85,
             edgecolors="white",
-            linewidths=2.5,
+            linewidths=3.5,
             zorder=3,
         )
         offset_x, offset_y, ha, va = placements.get(
-            s["state"], (12, 12, "left", "bottom"),
+            s["state"], (16, 16, "left", "bottom"),
         )
         ax.annotate(
             f"S{s['state']}\n{s['interpretation']}",
             xy=(s["kd"], s["rsa"]),
             xytext=(offset_x, offset_y),
             textcoords="offset points",
-            fontsize=14,
+            fontsize=22,
             fontweight="bold",
             color=color,
             ha=ha,
             va=va,
         )
-    ax.axvline(0.0, color="#bbbbbb", linewidth=0.8, zorder=1)
+    ax.axvline(0.0, color="#bbbbbb", linewidth=1.0, zorder=1)
     avg_rsa = float(np.mean([s["rsa"] for s in summaries]))
-    ax.axhline(avg_rsa, color="#bbbbbb", linewidth=0.8, zorder=1, linestyle="--")
-    ax.set_xlabel("Mean Kyte-Doolittle hydrophobicity\n(← polar / charged       hydrophobic →)", fontsize=14)
-    ax.set_ylabel("Mean RSA per state\n(← buried        exposed →)", fontsize=14)
-    ax.set_title("States separate in biochemistry × geometry space", fontsize=18, fontweight="bold", pad=20)
+    ax.axhline(avg_rsa, color="#bbbbbb", linewidth=1.0, zorder=1, linestyle="--")
+    ax.set_xlabel("Mean Kyte-Doolittle hydrophobicity\n(← polar / charged       hydrophobic →)", fontsize=20, fontweight="bold")
+    ax.set_ylabel("Mean RSA per state\n(← buried        exposed →)", fontsize=20, fontweight="bold")
+    ax.set_title("States separate in biochemistry × geometry space", fontsize=26, fontweight="bold", pad=24)
     ax.grid(axis="both", linestyle=":", alpha=0.5)
+    ax.tick_params(axis="both", labelsize=16)
     # Add headroom above the highest marker so above-marker labels don't crash into the title.
     rsa_values = [s["rsa"] for s in summaries]
     kd_values = [s["kd"] for s in summaries]
@@ -155,15 +156,15 @@ def plot_kd_vs_rsa(summaries, fig_dir: Path) -> None:
         mpatches.Patch(color=DSSP_COLORS["E"], label="Dominant: strand (E)"),
         mpatches.Patch(color=DSSP_COLORS["C"], label="Dominant: coil (C)"),
     ]
-    legend = ax.legend(handles=handles, loc="upper right", fontsize=12, framealpha=0.95,
+    legend = ax.legend(handles=handles, loc="upper right", fontsize=17, framealpha=0.95,
                        bbox_to_anchor=(1.0, 1.0))
-    legend.set_title("DSSP enrichment", prop={"size": 12, "weight": "bold"})
+    legend.set_title("DSSP enrichment", prop={"size": 18, "weight": "bold"})
 
     ax.text(
         0.02, 0.02,
         "marker size ∝ stationary state occupancy",
         transform=ax.transAxes,
-        fontsize=15, color="#555", style="italic", fontweight="bold",
+        fontsize=18, color="#555", style="italic", fontweight="bold",
     )
     fig.tight_layout()
     fig.savefig(fig_dir / "state_kd_vs_rsa_scatter.png", dpi=200)
