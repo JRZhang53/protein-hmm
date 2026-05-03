@@ -35,11 +35,21 @@ from protein_hmm.visualization.style import STATE_PALETTE, apply_style
 
 DSSP_LABELS = ("H", "E", "C")
 DSSP_COLORS = {"H": "#1f4e79", "E": "#c1432a", "C": "#7f7f7f"}
-STATE_INTERPRETATION = {
-    0: "turn-rich coil",
-    1: "amphipathic helix",
-    2: "acidic surface loop",
-    3: "buried hydrophobic core",
+STATE_INTERPRETATION_BY_K: dict[int, dict[int, str]] = {
+    4: {
+        0: "turn-rich coil",
+        1: "amphipathic helix",
+        2: "acidic surface loop",
+        3: "buried hydrophobic core",
+    },
+    6: {
+        0: "polar surface helix",
+        1: "proline / Gly turn",
+        2: "charged surface helix",
+        3: "Gly-mixed buried region",
+        4: "pure aliphatic core",
+        5: "polar / mixed strand",
+    },
 }
 
 
@@ -50,6 +60,7 @@ def _state_summary(model: DiscreteHMM, rsa_means: list[float], dssp_enrichment: 
     trans = model.params.transition_probs
     kd = np.asarray([KYTE_DOOLITTLE_HYDROPHOBICITY[a] for a in AMINO_ACIDS])
     stat = np.linalg.matrix_power(trans, 500)[0]
+    interpretations = STATE_INTERPRETATION_BY_K.get(model.num_states, {})
 
     summaries = []
     for k in range(model.num_states):
@@ -67,7 +78,7 @@ def _state_summary(model: DiscreteHMM, rsa_means: list[float], dssp_enrichment: 
             "stationary": float(stat[k]),
             "self_transition": float(trans[k, k]),
             "dwell": float(1.0 / max(1.0 - trans[k, k], 1e-9)),
-            "interpretation": STATE_INTERPRETATION.get(k, ""),
+            "interpretation": interpretations.get(k, f"state {k}"),
         })
     return summaries
 
@@ -317,7 +328,7 @@ def plot_fingerprint_cards(summaries, fig_dir: Path) -> None:
             ax.text(0.08, y, label, transform=ax.transAxes, ha="left", va="center", fontsize=11, color="#444")
             ax.text(0.92, y, value, transform=ax.transAxes, ha="right", va="center", fontsize=13, fontweight="bold", color="#111")
 
-    fig.suptitle("Latent state fingerprints (K=4 unsupervised)", fontsize=18, fontweight="bold", y=0.99)
+    fig.suptitle(f"Latent state fingerprints (K={K} unsupervised)", fontsize=18, fontweight="bold", y=0.99)
     fig.tight_layout(rect=(0, 0, 1, 0.96))
     fig.savefig(fig_dir / "state_fingerprint_cards.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
