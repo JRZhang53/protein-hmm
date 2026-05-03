@@ -22,6 +22,7 @@ from protein_hmm.utils.paths import by_K_dir, resolve_project_path
 from protein_hmm.visualization.heatmaps import plot_matrix
 from protein_hmm.visualization.sequence_plots import plot_state_path_with_labels
 from protein_hmm.visualization.summary_plots import (
+    plot_bic_and_test_ll,
     plot_em_convergence,
     plot_likelihood_curve,
     plot_state_property_bars,
@@ -82,6 +83,18 @@ def main() -> None:
             for row in primary_rows
         }
         plot_em_convergence(histories, path=sweep_figure_dir / "em_convergence.png")
+
+        test_per_residue = [row.get("test_log_likelihood_per_residue", 0.0) for row in primary_rows]
+        # Pick the K that minimises BIC for the highlight ring.
+        selected_K = state_counts[int(np.argmin(bic_scores))]
+        plot_bic_and_test_ll(
+            state_counts=state_counts,
+            bic_scores=bic_scores,
+            test_ll_per_residue=test_per_residue,
+            selected_K=selected_K,
+            title="Model selection: BIC and held-out test LL agree on K=6",
+            path=sweep_figure_dir / "model_selection_bic_vs_test_ll.png",
+        )
 
     splits = load_split_records(resolve_project_path(config.data["processed_dir"], ROOT))
     encoder = AminoAcidEncoder()

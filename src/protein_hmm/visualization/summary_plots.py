@@ -74,6 +74,79 @@ def plot_likelihood_curve(
     _save(figure, path)
 
 
+def plot_bic_and_test_ll(
+    state_counts: list[int],
+    bic_scores: list[float],
+    test_ll_per_residue: list[float],
+    selected_K: int | None = None,
+    title: str = "Model selection: BIC and held-out log-likelihood vs K",
+    path: str | Path | None = None,
+) -> None:
+    """Dual-axis plot: BIC (left, lower=better) and test LL/residue (right, higher=better)."""
+    plt = _require_matplotlib()
+    figure, ax1 = plt.subplots(figsize=(11, 7.5))
+
+    bic_color = STATE_PALETTE[0]   # navy
+    ll_color = STATE_PALETTE[1]    # red
+
+    # Left axis: BIC
+    line1 = ax1.plot(
+        state_counts, bic_scores,
+        marker="o", markersize=18, linewidth=3.5,
+        color=bic_color, markerfacecolor="white", markeredgewidth=3.5,
+        label="BIC (lower = better)",
+        zorder=3,
+    )
+    ax1.set_xlabel("Number of latent states K", fontsize=22, fontweight="bold")
+    ax1.set_ylabel("BIC ↓", fontsize=22, fontweight="bold", color=bic_color)
+    ax1.tick_params(axis="y", labelcolor=bic_color, labelsize=18)
+    ax1.tick_params(axis="x", labelsize=18)
+    ax1.set_xticks(state_counts)
+    ax1.grid(axis="y", linestyle="--", alpha=0.4, color=bic_color)
+
+    # Right axis: test LL/residue
+    ax2 = ax1.twinx()
+    line2 = ax2.plot(
+        state_counts, test_ll_per_residue,
+        marker="s", markersize=18, linewidth=3.5,
+        color=ll_color, markerfacecolor="white", markeredgewidth=3.5,
+        label="Test LL / residue (higher = better)",
+        zorder=3,
+    )
+    ax2.set_ylabel("Test LL / residue ↑", fontsize=22, fontweight="bold", color=ll_color)
+    ax2.tick_params(axis="y", labelcolor=ll_color, labelsize=18)
+
+    # Highlight selected K
+    if selected_K is not None and selected_K in state_counts:
+        idx = state_counts.index(selected_K)
+        ax1.axvline(selected_K, color="#777777", linewidth=1.5, linestyle=":", zorder=1)
+        ax1.scatter([selected_K], [bic_scores[idx]],
+                    s=900, facecolors="none", edgecolors=bic_color, linewidths=5, zorder=4)
+        ax2.scatter([selected_K], [test_ll_per_residue[idx]],
+                    s=900, facecolors="none", edgecolors=ll_color, linewidths=5, zorder=4)
+        # Place the "selected K=N" label inside the plot area, just above
+        # the BIC curve at the selected K, so it never collides with the
+        # x-axis label.
+        ax1.annotate(
+            f"selected K={selected_K}",
+            xy=(selected_K, bic_scores[idx]),
+            xytext=(14, 14),
+            textcoords="offset points",
+            ha="left", va="bottom",
+            fontsize=18, fontweight="bold", color="#333",
+            bbox=dict(boxstyle="round,pad=0.4", fc="white", ec="#777777", lw=1.2),
+        )
+
+    ax1.set_title(title, fontsize=22, fontweight="bold", pad=18)
+
+    lines = line1 + line2
+    labels = [l.get_label() for l in lines]
+    ax1.legend(lines, labels, loc="upper center", fontsize=16, framealpha=0.95)
+
+    figure.tight_layout()
+    _save(figure, path)
+
+
 def plot_em_convergence(
     histories: dict[str, Iterable[float]],
     title: str = "EM convergence",
