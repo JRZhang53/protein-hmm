@@ -141,7 +141,16 @@ def plot_bic_and_test_ll(
 
     lines = line1 + line2
     labels = [l.get_label() for l in lines]
-    ax1.legend(lines, labels, loc="upper center", fontsize=16, framealpha=0.95)
+    ax1.legend(
+        lines, labels,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.15),
+        ncol=2,
+        fontsize=16,
+        framealpha=0.95,
+        frameon=True,
+        borderpad=0.7,
+    )
 
     figure.tight_layout()
     _save(figure, path)
